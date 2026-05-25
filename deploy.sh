@@ -80,18 +80,20 @@ if docker ps -a --format '{{.Names}}' | grep -qx "$NEW_CONTAINER"; then
    docker rm -f "$NEW_CONTAINER" || true
 fi
 
-# ตรวจสอบสิทธิ์การเข้าถึงโฟลเดอร์บนเครื่องโฮสต์ก่อนเริ่มรัน Docker
-if [ ! -d "$HOST_VOLUME_USER_DATA" ]; then
-    echo "⚠️ Warning: Host directory $HOST_VOLUME_USER_DATA does not exist. Trying to create it..."
-    mkdir -p "$HOST_VOLUME_USER_DATA" || { echo "❌ Error: Cannot create directory $HOST_VOLUME_USER_DATA. Please check host permissions!"; exit 1; }
-fi
+# ==========================================
+# จัดเตรียมและแก้ไขสิทธิ์โฟลเดอร์สำหรับ ftuser (1000:1000)
+# ==========================================
+TARGET_USER_DATA="${HOST_VOLUME_USER_DATA}"
 
-# ตรวจสอบว่า Runner สามารถเขียนข้อมูลลงในโฟลเดอร์ปลายทางได้จริงหรือไม่
-if [ ! -w "$HOST_VOLUME_USER_DATA" ]; then
-    echo "❌ Error: Directory $HOST_VOLUME_USER_DATA is not writable by current user."
-    echo "👉 Please run: 'sudo chown -R \$USER:docker $HOST_VOLUME_USER_DATA' on your VPS."
-    exit 1
-fi
+echo "⚙️ Preparing host directories and setting up permission permissions..."
+# สร้างไดเรกทอรีที่จำเป็นสำหรับ FreqTrade บันทึกข้อมูล
+mkdir -p "${TARGET_USER_DATA}/logs"
+mkdir -p "${TARGET_USER_DATA}/backtest_results"
+mkdir -p "${TARGET_USER_DATA}/hyperopts"
+
+# ปรับสิทธิ์ให้กับ ftuser (UID 1000, GID 1000) ของ Freqtrade ให้เป็นเจ้าของ 
+sudo chown -R 1000:1000 "$TARGET_USER_DATA"
+sudo chmod -R 775 "$TARGET_USER_DATA"
 
 # ตรวจสอบความพร้อมของ Directories และสิทธิ์การใช้งานของ Volume
 # mkdir -p "${HOST_VOLUME_USER_DATA}/logs"
