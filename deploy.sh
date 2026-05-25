@@ -85,15 +85,12 @@ fi
 # ==========================================
 TARGET_USER_DATA="${HOST_VOLUME_USER_DATA}"
 
-echo "⚙️ Preparing host directories and setting up permission permissions..."
+# สร้างไดเรกทอรีที่จำเป็นสำหรับ FreqTrade บันทึกข้อมูล
+echo "⚙️ Preparing host directories..."
 # สร้างไดเรกทอรีที่จำเป็นสำหรับ FreqTrade บันทึกข้อมูล
 mkdir -p "${TARGET_USER_DATA}/logs"
 mkdir -p "${TARGET_USER_DATA}/backtest_results"
 mkdir -p "${TARGET_USER_DATA}/hyperopts"
-
-# ปรับสิทธิ์ให้กับ ftuser (UID 1000, GID 1000) ของ Freqtrade ให้เป็นเจ้าของ 
-sudo chown -R 1000:1000 "$TARGET_USER_DATA"
-sudo chmod -R 775 "$TARGET_USER_DATA"
 
 # ตรวจสอบความพร้อมของ Directories และสิทธิ์การใช้งานของ Volume
 # mkdir -p "${HOST_VOLUME_USER_DATA}/logs"
