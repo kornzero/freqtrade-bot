@@ -1,0 +1,12 @@
+user_data/*.sqlite
+user_data/logs/
+user_data/backtest_results/
+user_data/hyperopts/
+
+.env
+.env.production
+.git
+.github
+node_modules
+README.md
+deploy.sh
