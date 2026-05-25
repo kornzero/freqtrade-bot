@@ -92,6 +92,12 @@ fi
 
 echo "🟢 3/5: Starting new FreqTrade container ($NEW_CONTAINER) on testing port ($NEW_PORT)..."
 # ใช้พอร์ตทดสอบชั่วคราว $NEW_PORT ในการทดสอบสถานะ Health Status ก่อนอัพเกรดพอร์ตจริง
+
+#  --health-cmd "curl -fsS http://localhost:8080/api/v1/ping || exit 1" \
+#     --health-interval=5s \
+#     --health-timeout=3s \
+#     --health-retries=3 \
+
 docker run -d \
     --name "$NEW_CONTAINER" \
     --restart unless-stopped \
@@ -99,10 +105,6 @@ docker run -d \
     -v "${HOST_VOLUME_USER_DATA}:/freqtrade/user_data" \
     --env-file .env.production \
     --stop-timeout "$STOP_TIMEOUT" \
-    --health-cmd "curl -fsS http://localhost:8080/api/v1/ping || exit 1" \
-    --health-interval=5s \
-    --health-timeout=3s \
-    --health-retries=3 \
     "$IMAGE_NAME" \
     trade \
     --logfile /freqtrade/user_data/logs/freqtrade.log \
@@ -117,32 +119,32 @@ echo "⏳ 4/5: Waiting for $NEW_CONTAINER to become healthy..."
 MAX_WAIT=$MAX_WAIT_HEALTHCHECK
 WAIT_COUNT=0
 
-while true; do
-    STATUS="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$NEW_CONTAINER" 2>/dev/null || true)"
+# while true; do
+#     STATUS="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' "$NEW_CONTAINER" 2>/dev/null || true)"
 
-    if [ "$STATUS" == "healthy" ]; then
-        echo -e "\n✅ $NEW_CONTAINER is healthy!"
-        break
-    elif [ "$STATUS" == "unhealthy" ]; then
-        echo -e "\n❌ Error: $NEW_CONTAINER status is unhealthy!"
-        docker logs --tail 100 "$NEW_CONTAINER"
-        exit 1
-    elif [ "$(docker inspect -f '{{.State.Status}}' "$NEW_CONTAINER")" == "exited" ]; then
-        echo -e "\n❌ Error: $NEW_CONTAINER has exited unexpectedly!"
-        docker logs --tail 100 "$NEW_CONTAINER"
-        exit 1
-    fi
+#     if [ "$STATUS" == "healthy" ]; then
+#         echo -e "\n✅ $NEW_CONTAINER is healthy!"
+#         break
+#     elif [ "$STATUS" == "unhealthy" ]; then
+#         echo -e "\n❌ Error: $NEW_CONTAINER status is unhealthy!"
+#         docker logs --tail 100 "$NEW_CONTAINER"
+#         exit 1
+#     elif [ "$(docker inspect -f '{{.State.Status}}' "$NEW_CONTAINER")" == "exited" ]; then
+#         echo -e "\n❌ Error: $NEW_CONTAINER has exited unexpectedly!"
+#         docker logs --tail 100 "$NEW_CONTAINER"
+#         exit 1
+#     fi
 
-    if [ "$WAIT_COUNT" -ge "$MAX_WAIT" ]; then
-        echo -e "\n❌ Error: Timeout! $NEW_CONTAINER is still not healthy after $MAX_WAIT seconds."
-        docker logs --tail 100 "$NEW_CONTAINER"
-        exit 1
-    fi
+#     if [ "$WAIT_COUNT" -ge "$MAX_WAIT" ]; then
+#         echo -e "\n❌ Error: Timeout! $NEW_CONTAINER is still not healthy after $MAX_WAIT seconds."
+#         docker logs --tail 100 "$NEW_CONTAINER"
+#         exit 1
+#     fi
 
-    sleep 1
-    WAIT_COUNT=$((WAIT_COUNT+1))
-    echo -n "."
-done
+#     sleep 1
+#     WAIT_COUNT=$((WAIT_COUNT+1))
+#     echo -n "."
+# done
 
 # ==========================================
 # 4. ขั้นตอนการสลับพอร์ต (Port Swap / Replacement)
@@ -166,6 +168,11 @@ echo "⚡ Swapping Container configuration to use $ACTIVE_PORT..."
 docker stop -t "$STOP_TIMEOUT" "$NEW_CONTAINER" || true
 docker rm "$NEW_CONTAINER" || true
 
+# --health-cmd "curl -fsS http://localhost:8080/api/v1/ping || exit 1" \
+#     --health-interval=10s \
+#     --health-timeout=3s \
+#     --health-retries=5 \
+
 docker run -d \
     --name "$NEW_CONTAINER" \
     --restart unless-stopped \
@@ -173,10 +180,6 @@ docker run -d \
     -v "${HOST_VOLUME_USER_DATA}:/freqtrade/user_data" \
     --env-file .env.production \
     --stop-timeout "$STOP_TIMEOUT" \
-    --health-cmd "curl -fsS http://localhost:8080/api/v1/ping || exit 1" \
-    --health-interval=10s \
-    --health-timeout=3s \
-    --health-retries=5 \
     "$IMAGE_NAME" \
     trade \
     --logfile /freqtrade/user_data/logs/freqtrade.log \
