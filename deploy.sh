@@ -80,17 +80,11 @@ if docker ps -a --format '{{.Names}}' | grep -qx "$NEW_CONTAINER"; then
    docker rm -f "$NEW_CONTAINER" || true
 fi
 
-# ==========================================
-# จัดเตรียมและแก้ไขสิทธิ์โฟลเดอร์สำหรับ ftuser (1000:1000)
-# ==========================================
-TARGET_USER_DATA="${HOST_VOLUME_USER_DATA}"
-
-# สร้างไดเรกทอรีที่จำเป็นสำหรับ FreqTrade บันทึกข้อมูล
-echo "⚙️ Preparing host directories..."
-# สร้างไดเรกทอรีที่จำเป็นสำหรับ FreqTrade บันทึกข้อมูล
-mkdir -p "${TARGET_USER_DATA}/logs"
-mkdir -p "${TARGET_USER_DATA}/backtest_results"
-mkdir -p "${TARGET_USER_DATA}/hyperopts"
+if [ ! -d "$HOST_VOLUME_USER_DATA" ]; then
+    echo "❌ Error: TARGET_USER_DATA directory does not exist at: $HOST_VOLUME_USER_DATA"
+    echo "Please create 'user_data' folder on your host before running deploy script."
+    exit 1
+fi
 
 # ตรวจสอบความพร้อมของ Directories และสิทธิ์การใช้งานของ Volume
 # mkdir -p "${HOST_VOLUME_USER_DATA}/logs"
