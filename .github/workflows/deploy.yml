@@ -1,0 +1,58 @@
+name: Build and Deploy FreqTrade via Docker Hub
+
+on:
+  push:
+    branches: ["main"]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+      - ".gitattributes"
+      - ".editorconfig"
+      - "LICENSE"
+      - ".vscode/**"
+      - ".idea/**"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Git Commit Hash
+        id: commit
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # ใช้ Base Image ของ FreqTrade เป็นรากฐานในการ Build (หากมีโฟลเดอร์สำหรับตั้งค่า/กลยุทธ์เสริม)
+          # หรือทำการแท็กตัวแปรสำหรับ Docker Repository อย่างชัดเจน
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.NAMESPACE }}:${{ secrets.APP_NAME }}-${{ env.sha_short }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted
+    steps:
+      - name: Checkout latest code to Runner Workspace
+        uses: uses/actions/checkout@v4
+
+      - name: Generate .env.production on VPS
+        run: |
+          cat << 'EOF' > .env.production
+          ${{ secrets.PROD_ENV_FILE }}
+          EOF
+
+      - name: Run Deploy Script
+        run: |
+          chmod +x ./deploy.sh
+          ./deploy.sh
